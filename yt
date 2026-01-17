@@ -1,0 +1,6 @@
+#!/bin/bash
+# YouTube Transcript CLI
+# Usage: yt URL [--format text|json|timestamp]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$SCRIPT_DIR/venv/bin/python3" "$SCRIPT_DIR/yt_transcript.py" "$@"
