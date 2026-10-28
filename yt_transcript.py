@@ -5,28 +5,42 @@ YouTube Transcript Fetcher CLI
 Fetches transcripts from YouTube videos and outputs to stdout.
 
 Usage:
-    ./yt_transcript.py URL [--format FORMAT]
-    echo "URL" | ./yt_transcript.py
+    yt-transcribe URL [--format FORMAT]
+    echo "URL" | yt-transcribe
 """
 
 import sys
 import re
 import argparse
 import json
+from urllib.parse import parse_qs, urlsplit
 
 from youtube_transcript_api import YouTubeTranscriptApi
 
 
 def extract_video_id(url_or_id: str) -> str:
-    """Extract video ID from various YouTube URL formats or return if already an ID."""
-    patterns = [
-        r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})",
-        r"^([a-zA-Z0-9_-]{11})$",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, url_or_id)
-        if match:
-            return match.group(1)
+    """Extract a complete video ID from an ID or a supported YouTube URL."""
+    if re.fullmatch(r"[a-zA-Z0-9_-]{11}", url_or_id):
+        return url_or_id
+
+    url = urlsplit(url_or_id if "://" in url_or_id else f"https://{url_or_id}")
+    video_id = ""
+    if url.scheme in {"http", "https"}:
+        host = url.netloc.lower()
+        if host in {"youtu.be", "www.youtu.be"}:
+            video_id = url.path.removeprefix("/")
+        elif host in {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com"}:
+            if url.path == "/watch":
+                values = parse_qs(url.query, keep_blank_values=True).get("v", [])
+                if len(values) == 1:
+                    video_id = values[0]
+            else:
+                parts = url.path.split("/")
+                if len(parts) == 3 and parts[1] in {"embed", "shorts", "live"}:
+                    video_id = parts[2]
+
+    if re.fullmatch(r"[a-zA-Z0-9_-]{11}", video_id):
+        return video_id
     raise ValueError(f"Could not extract video ID from: {url_or_id}")
 
 
@@ -40,15 +54,16 @@ def format_timestamp(seconds: float) -> str:
     return f"{minutes}:{secs:02d}"
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
+        prog="yt-transcribe",
         description="Fetch YouTube video transcripts",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./yt_transcript.py "https://www.youtube.com/watch?v=VIDEO_ID"
-  ./yt_transcript.py VIDEO_ID --format timestamp
-  echo "https://youtu.be/VIDEO_ID" | ./yt_transcript.py
+  yt-transcribe "https://www.youtube.com/watch?v=VIDEO_ID"
+  yt-transcribe VIDEO_ID --format timestamp
+  echo "https://youtu.be/VIDEO_ID" | yt-transcribe
         """,
     )
     parser.add_argument("url", nargs="?", help="YouTube URL or video ID")
