@@ -1,6 +1,9 @@
 import io
 import json
+import os
+import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 from youtube_transcript_api import (
@@ -116,6 +119,40 @@ def test_cli_formats_transcript_from_stdin(
             else "[0:00] Hello\n[1:00:01] 세계\n"
         )
         assert output.out == expected
+
+
+def test_cli_writes_utf8_when_stdout_uses_a_legacy_code_page() -> None:
+    # Given a legacy ANSI stdout encoding, as on Windows pipes and files.
+    script = (
+        "import yt_transcript;"
+        "yt_transcript.configure_stdio();"
+        "print('\\u266a')"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        cwd=Path(__file__).resolve().parent.parent,
+        env={**os.environ, "PYTHONIOENCODING": "cp949"},
+        check=False,
+    )
+    # Then non-ASCII text is emitted as UTF-8 rather than cp949.
+    assert result.returncode == 0
+    assert result.stdout.rstrip(b"\r\n") == "\u266a".encode()
+
+
+def test_cli_reports_installed_version(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Given a request for the CLI version.
+    monkeypatch.setattr(sys, "argv", ["yt-transcribe", "--version"])
+    # When the CLI starts.
+    with pytest.raises(SystemExit) as error:
+        yt_transcript.main()
+    # Then it exits successfully and prints the command with a version.
+    assert error.value.code == 0
+    program, reported = capsys.readouterr().out.strip().split(" ", 1)
+    assert program == "yt-transcribe"
+    assert reported
 
 
 def test_cli_reports_disabled_transcript(

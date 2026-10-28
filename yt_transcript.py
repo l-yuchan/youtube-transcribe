@@ -10,9 +10,11 @@ Usage:
 """
 
 import sys
+import io
 import re
 import argparse
 import json
+from importlib.metadata import PackageNotFoundError, version
 from urllib.parse import parse_qs, urlsplit
 
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -54,7 +56,23 @@ def format_timestamp(seconds: float) -> str:
     return f"{minutes}:{secs:02d}"
 
 
+def configure_stdio() -> None:
+    """Write UTF-8 instead of the platform ANSI code page."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
+
+
+def cli_version() -> str:
+    """Return the installed distribution version, or a source-checkout label."""
+    try:
+        return version("youtube-transcribe")
+    except PackageNotFoundError:
+        return "unreleased"
+
+
 def main() -> None:
+    configure_stdio()
     parser = argparse.ArgumentParser(
         prog="yt-transcribe",
         description="Fetch YouTube video transcripts",
@@ -65,6 +83,12 @@ Examples:
   yt-transcribe VIDEO_ID --format timestamp
   echo "https://youtu.be/VIDEO_ID" | yt-transcribe
         """,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {cli_version()}",
+        help="Show the installed version and exit",
     )
     parser.add_argument("url", nargs="?", help="YouTube URL or video ID")
     parser.add_argument(

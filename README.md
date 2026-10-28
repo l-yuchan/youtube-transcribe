@@ -33,7 +33,8 @@ cd youtube-transcribe
 uv tool install .
 ```
 
-Reinstall a path install after changing the code with `uv tool install --force .`,
+Reinstall a path install after changing the code with `uv tool install --reinstall .`
+(plain `--force` can reuse the cached wheel for an unchanged version),
 refresh a git install with `uv tool upgrade youtube-transcribe`, and remove the
 command with `uv tool uninstall youtube-transcribe`.
 `uv tool install` puts `yt-transcribe` on your PATH in its own isolated environment,
@@ -110,6 +111,7 @@ Full structured data with start time and duration for each segment:
 |--------|-------|-------------|
 | `--format` | `-f` | Output format: `text`, `timestamp`, or `json` (default: `text`) |
 | `--lang` | `-l` | Language code for transcript (default: `en`) |
+| `--version` | | Print the installed version and exit |
 
 ## Requirements
 
