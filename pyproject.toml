@@ -1,0 +1,26 @@
+[project]
+name = "youtube-transcribe"
+version = "0.1.0"
+description = "Fetch YouTube captions from the command line"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "youtube-transcript-api>=1.0.0",
+]
+
+[project.scripts]
+yt-transcribe = "yt_transcript:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["yt_transcript"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
